@@ -126,21 +126,24 @@ _Lors de la définition d'une zone, spécifier l'adresse du sous-réseau IP avec
 | Adresse IP source | Adresse IP destination | Type | Port src | Port dst | Action |
 | :---:             | :---:                  | :---:| :------: | :------: | :----: |
 |       *           |            *           |   *  |   *      |    *     | Reject |
-|  192.168.100.0/24 | 172.17.0.2             |  TCP |   53     |    53    | Accept |
-|  172.17.0.2       | 192.168.100.0/24       |  TCP |   53     |    53    | Accept |
-|  192.168.100.0/24 | 172.17.0.2             |  UDP |   53     |    53    | Accept |
-|  172.17.0.2       | 192.168.100.0/24       |  UDP |   53     |    53    | Accept |
-|  192.168.100.0/24 | 172.17.0.2             | ICMP |     -    |    -     | Accept |
-|  192.168.100.0/24 | 192.168.1.200/24       | ICMP |     -    |    -     | Accept |
-|  192.168.200.0/24 | 172.17.0.2             | TCP  |   80     |    80    | Accept |
-|  192.168.200.0/24 | 172.17.0.2             | TCP  |   8080   |    80    | Accept |
-|  192.168.200.0/24 | 172.17.0.2             | TCP  |   443    |    443   | Accept |
-|  192.168.200.0/24 | 192.168.1.200/24       | TCP  |   80     |    80    | Accept |
-|   172.17.0.2      | 192.168.1.200/24       | TCP  |   80     |    80    | Accept |
+|  192.168.100.0/24 |            *           |  TCP |   53     |    53    | Accept |
+|         *         | 192.168.100.0/24       |  TCP |   53     |    53    | Accept |
+|  192.168.100.0/24 |            *           |  UDP |   53     |    53    | Accept |
+|         *         | 192.168.100.0/24       |  UDP |   53     |    53    | Accept |
+|  192.168.100.0/24 | 172.17.0.2             | ICMP | echo-request |   -     | Accept |
+|  192.168.100.0/24 | 192.168.1.200/24       | ICMP |     -    |    echo- reply   | Accept |
+|  192.168.200.0/24 |        *               | TCP  |   80     |    80    | Accept |
+|  *                |  192.168.200.0/24      | TCP  |   80     |    80    | Accept |
+|  192.168.200.0/24 |       *                | TCP  |   8080   |    8080  | Accept |
+|  *                |  192.168.200.0/24      | TCP  |   8080   |    8080  | Accept |
+|  192.168.100.0/24 |         *              | TCP  |   443    |    443   | Accept |
+|       *           |  192.168.100.0/24      | TCP  |   443    |    443   | Accept |
+|       *           |   192.168.200.0/24     | TCP  |   80     |    80    | Accept |
 |  192.168.100.3    | 192.168.1.200          | TCP  |     22   |    22    | Accept |
 |  192.168.100.3    |      192.168.100.2     |  TCP |    22    |  22      |  Accept|
 
 ---
+- Doit on spécifier les règles de filtrage aller-retour ou une règle de filtrage est implicitement avec état et on ignore le retour ? (actuellement une règle allé et une règle retour)
 
 # Installation de l’environnement virtualisé
 
@@ -234,7 +237,7 @@ ping 192.168.200.3
 ---
 
 **LIVRABLE : capture d'écran de votre tentative de ping.**  
-
+![capture d'écran de votre tentative de ping](figures/TentativePing.png)
 ---
 
 En effet, la communication entre les clients dans le LAN et les serveurs dans la DMZ doit passer à travers le Firewall. Il faut donc définir le Firewall comme passerelle par défaut pour le client dans le LAN et le serveur dans la DMZ.
@@ -267,7 +270,7 @@ ping 192.168.100.3
 
 **LIVRABLE : capture d'écran de votre nouvelle tentative de ping.**
 
-![Plan d'adressage](figures/TentativePing.png)
+![Plan d'adressage](figures/tentativePingSuccess.png)
 
 ---
 
@@ -282,6 +285,7 @@ ping 8.8.8.8
 ---
 
 **LIVRABLE : capture d'écran de votre ping vers l'Internet.**
+![Plan d'adressage](figures/tentativePingDNSGoogleFailure.png)
 
 ---
 
