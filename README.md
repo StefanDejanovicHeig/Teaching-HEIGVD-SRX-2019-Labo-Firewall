@@ -121,17 +121,20 @@ _Lors de la définition d'une zone, spécifier l'adresse du sous-réseau IP avec
 
 ---
 
+
+
 **LIVRABLE : Remplir le tableau**
 
 | Adresse IP source | Adresse IP destination | Type | Port src | Port dst | Action |
 | :---:             | :---:                  | :---:| :------: | :------: | :----: |
-|       *           |            *           |   *  |   *      |    *     | Reject |
+|       *           |            *           |   *  |   *      |    *     | Drop   |
 |  192.168.100.0/24 |            *           |  TCP |   53     |    53    | Accept |
 |         *         | 192.168.100.0/24       |  TCP |   53     |    53    | Accept |
 |  192.168.100.0/24 |            *           |  UDP |   53     |    53    | Accept |
 |         *         | 192.168.100.0/24       |  UDP |   53     |    53    | Accept |
-|  192.168.100.0/24 | 172.17.0.2             | ICMP | echo-request |   -     | Accept |
-|  192.168.100.0/24 | 192.168.1.200/24       | ICMP |     -    |    echo- reply   | Accept |
+|  192.168.100.0/24 |           *            | ICMP |    -     |echo-request| Accept |
+|        *          | 192.168.100.0/24       | ICMP | echo-request |   -     | Accept |
+|  192.168.200.0/24 | 192.168.200.0/24       | ICMP |    -     |echo-request| Accept 
 |  192.168.200.0/24 |        *               | TCP  |   80     |    80    | Accept |
 |  *                |  192.168.200.0/24      | TCP  |   80     |    80    | Accept |
 |  192.168.200.0/24 |       *                | TCP  |   8080   |    8080  | Accept |
@@ -320,6 +323,7 @@ La commande `iptables` définit une règle dans le tableau NAT qui permet la red
 Les deux autres commandes démarrent les services Web et SSH du serveur.
 
 **ATTENTION :** Il faudra aussi définir un mot de passe pour pour les connexions ssh. Pour cela, utiliser la commande `passwd`.
+  *     toor
 
 Vérifiez que la connexion à l'Internet est maintenant possible depuis les deux autres machines. Pas besoin de capture d'écran.
 
