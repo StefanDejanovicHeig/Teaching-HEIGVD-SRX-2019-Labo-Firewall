@@ -70,3 +70,10 @@ $docker iptables -A FORWARD -d 192.168.200.3 -i eth2 -p tcp --sport 80 -j ACCEPT
 $docker iptables -A FORWARD -d 192.168.200.3 -i eth0 -p tcp --sport 80 -j ACCEPT
 
 
+#---------
+# 7. SSH DMZ
+#--------
+echo "7. Allows to admin DMZ with SSH from LAN"
+
+# LAN --> DMZ.3
+$docker iptables -A FORWARD -s 192.168.100.3 -d 192.168.200.3 -p tcp --dport 22 -j ACCEPT
