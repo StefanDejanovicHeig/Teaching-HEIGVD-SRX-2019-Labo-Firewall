@@ -18,7 +18,8 @@ $docker iptables -P FORWARD DROP
 echo "0.2 Allows return traffic : RELATED, ESTABLISHED"
 $docker iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 $docker iptables -A FORWARD -m conntrack --ctstate INVALID -j DROP
-
+# ssh return traffic for Clien_in_LAN
+$docker iptables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
 #---------
 # 1. PING
@@ -77,3 +78,13 @@ echo "7. Allows to admin DMZ with SSH from LAN"
 
 # LAN --> DMZ.3
 $docker iptables -A FORWARD -s 192.168.100.3 -d 192.168.200.3 -p tcp --dport 22 -j ACCEPT
+
+
+
+#---------
+# 8. SSH FIREWALL
+#--------
+echo "8. Allows to admin FIREWALL with SSH from LAN"
+
+# LAN --> FIREWALL
+$docker iptables -A INPUT -s 192.168.100.3 -i eth2 -p tcp --dport 22  -j ACCEPT
