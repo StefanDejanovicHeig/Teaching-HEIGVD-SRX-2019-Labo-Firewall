@@ -58,3 +58,15 @@ $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 8080 -j A
 #--------
 echo "4. Allows HTTPS secure Connection for LAN"
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 443 -j ACCEPT
+
+#---------
+# 6. HTTP DMZ
+#--------
+echo "6. Allows to reach DMZ on 80 8080 from LAN and WAN"
+
+# LAN --> DMZ.3
+$docker iptables -A FORWARD -d 192.168.200.3 -i eth2 -p tcp --sport 80 -j ACCEPT
+# WAN --> DMZ.3
+$docker iptables -A FORWARD -d 192.168.200.3 -i eth0 -p tcp --sport 80 -j ACCEPT
+
+
