@@ -1,5 +1,5 @@
 #!/bin/bash
-docker="sudo docker exec -t firewall"
+docker="docker exec -t firewall"
 
 #clean iptables 
 echo "0.0 flush iptable rules"
@@ -28,9 +28,8 @@ echo "2. Allows pings echo-request & echo-reply"
 #$docker iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
 
 # LAN --> WAN
-$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth0 -p icmp --icmp-type 8 -j ACCEPT
-$docker iptables -A FORWARD -d 192.168.100.0/24 -p icmp --icmp-type 0 -j ACCEPT
-#$docker iptables -A FORWARD -d 192.168.100.0/24 -i eth2 -p icmp --icmp-type 0 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p icmp --icmp-type 8 -j ACCEPT
+$docker iptables -A FORWARD -d 192.168.100.0/24 -i eth0 -p icmp --icmp-type 0 -j ACCEPT
 
 # DMZ --> LAN
 $docker iptables -A FORWARD -s 192.168.200.0/24 -d 192.168.100.0/24 -p icmp --icmp-type 8 -j ACCEPT
