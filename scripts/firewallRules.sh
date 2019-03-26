@@ -23,7 +23,7 @@ $docker iptables -A FORWARD -m conntrack --ctstate INVALID -j DROP
 #---------
 # 1. PING
 #--------
-echo "1. Allows pings echo-request & echo-reply"
+echo "1. Allows pings echo-request & echo-reply for LAN"
 # LAN --> WAN
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p icmp --icmp-type 8 -j ACCEPT
 $docker iptables -A FORWARD -d 192.168.100.0/24 -i eth0 -p icmp --icmp-type 0 -j ACCEPT
@@ -39,9 +39,22 @@ $docker iptables -A FORWARD -s 192.168.200.0/24 -d 192.168.100.0/24 -p icmp --ic
 #----------
 # 2. DNS
 #----------
-echo "2. Allows DNS lookups (tcp, udp port 53)" 
+echo "2. Allows DNS lookups (tcp, udp port 53) for LAN" 
 # LAN --> WAN
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p udp --dport 53 -j ACCEPT
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 53 -j ACCEPT
 
+#---------
+# 3. HTTP
+#--------
+echo "3. Allows HTTP Connection for LAN"
 
+# LAN --> WAN
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 80 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 8080 -j ACCEPT
+
+#---------
+# 4. HTTPS
+#--------
+echo "4. Allows HTTPS secure Connection for LAN"
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 443 -j ACCEPT
