@@ -13,13 +13,13 @@ $docker iptables -P INPUT DROP
 $docker iptables -P OUTPUT DROP
 $docker iptables -P FORWARD DROP
 
-
 # return traffic 
 echo "0.2 Allows return traffic : RELATED, ESTABLISHED"
 $docker iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 $docker iptables -A FORWARD -m conntrack --ctstate INVALID -j DROP
 # ssh return traffic for Clien_in_LAN
 $docker iptables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
 
 #---------
 # 1. PING
@@ -37,6 +37,8 @@ $docker iptables -A FORWARD -s 192.168.100.0/24 -d 192.168.200.0/24 -p icmp --ic
 $docker iptables -A FORWARD -s 192.168.100.0/24 -d 192.168.200.0/24 -p icmp --icmp-type 8 -j ACCEPT
 $docker iptables -A FORWARD -s 192.168.200.0/24 -d 192.168.100.0/24 -p icmp --icmp-type 0 -j ACCEPT
 
+
+
 #----------
 # 2. DNS
 #----------
@@ -44,6 +46,7 @@ echo "2. Allows DNS lookups (tcp, udp port 53) for LAN"
 # LAN --> WAN
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p udp --dport 53 -j ACCEPT
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 53 -j ACCEPT
+
 
 #---------
 # 3. HTTP
@@ -61,30 +64,29 @@ echo "4. Allows HTTPS secure Connection for LAN"
 $docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 443 -j ACCEPT
 
 #---------
-# 6. HTTP DMZ
+# 5. HTTP DMZ
 #--------
-echo "6. Allows to reach DMZ on 80 8080 from LAN and WAN"
+echo "5. Allows to reach DMZ on port 80 from LAN and WAN"
 
 # LAN --> DMZ.3
 $docker iptables -A FORWARD -d 192.168.200.3 -i eth2 -p tcp --sport 80 -j ACCEPT
 # WAN --> DMZ.3
 $docker iptables -A FORWARD -d 192.168.200.3 -i eth0 -p tcp --sport 80 -j ACCEPT
 
-
 #---------
-# 7. SSH DMZ
+# 6. SSH DMZ
 #--------
-echo "7. Allows to admin DMZ with SSH from LAN"
+echo "6. Allows to admin DMZ with SSH from LAN"
 
 # LAN --> DMZ.3
-$docker iptables -A FORWARD -s 192.168.100.3 -d 192.168.200.3 -p tcp --dport 22 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.3 -d 192.168.200.3 -i eth2 -p tcp --dport 22 -j ACCEPT
 
 
 
 #---------
-# 8. SSH FIREWALL
+# 7. SSH FIREWALL
 #--------
-echo "8. Allows to admin FIREWALL with SSH from LAN"
+echo "7. Allows to admin FIREWALL with SSH from LAN"
 
 # LAN --> FIREWALL
 $docker iptables -A INPUT -s 192.168.100.3 -i eth2 -p tcp --dport 22  -j ACCEPT
