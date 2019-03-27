@@ -128,22 +128,18 @@ _Lors de la définition d'une zone, spécifier l'adresse du sous-réseau IP avec
 | Adresse IP source | Adresse IP destination | Type | Port src | Port dst | Action |
 | :---:             | :---:                  | :---:| :------: | :------: | :----: |
 |       *           |            *           |   *  |   *      |    *     | Drop   |
-|  192.168.100.0/24 |            *           |  TCP |   53     |    53    | Accept |
-|         *         | 192.168.100.0/24       |  TCP |   53     |    53    | Accept |
-|  192.168.100.0/24 |            *           |  UDP |   53     |    53    | Accept |
-|         *         | 192.168.100.0/24       |  UDP |   53     |    53    | Accept |
+|  192.168.100.0/24 |            *           |  TCP |   -     |    53    | Accept |
+|  192.168.100.0/24 |            *           |  UDP |   -     |    53    | Accept |
 |  192.168.100.0/24 |           *            | ICMP |    -     |echo-request| Accept |
-|        *          | 192.168.100.0/24       | ICMP | echo-request |   -     | Accept |
-|  192.168.200.0/24 | 192.168.200.0/24       | ICMP |    -     |echo-request| Accept 
-|  192.168.200.0/24 |        *               | TCP  |   80     |    80    | Accept |
-|  *                |  192.168.200.0/24      | TCP  |   80     |    80    | Accept |
-|  192.168.200.0/24 |       *                | TCP  |   8080   |    8080  | Accept |
-|  *                |  192.168.200.0/24      | TCP  |   8080   |    8080  | Accept |
-|  192.168.100.0/24 |         *              | TCP  |   443    |    443   | Accept |
-|       *           |  192.168.100.0/24      | TCP  |   443    |    443   | Accept |
-|       *           |   192.168.200.0/24     | TCP  |   80     |    80    | Accept |
-|  192.168.100.3    | 192.168.1.200          | TCP  |     22   |    22    | Accept |
-|  192.168.100.3    |      192.168.100.2     |  TCP |    22    |  22      |  Accept|
+|  192.168.200.0/24 | 192.168.100.0/24       | ICMP |    -     |echo-request| Accept |
+|  192.168.100.0/24 | 192.168.200.0/24       | ICMP |    -     |echo-request| Accept |
+|  192.168.200.0/24 |        *               | TCP  |   -     |    80    | Accept |
+|  192.168.200.0/24 |       *                | TCP  |   -   |    8080  | Accept |
+|  192.168.100.0/24 |         *              | TCP  |   -    |    443   | Accept |
+|  192.168.100.0/24 |   192.168.200.0/24     | TCP  |   -     |    80    | Accept |
+|         *         |   192.168.200.0/24     | TCP  |   -     |    80    | Accept |
+|  192.168.100.3    | 192.168.200.3        | TCP  |    -   |    22    | Accept |
+|  192.168.100.3    |      192.168.100.2     |  TCP |    -    |  22      |  Accept|
 
 ---
 - Doit on spécifier les règles de filtrage aller-retour ou une règle de filtrage est implicitement avec état et on ignore le retour ? (actuellement une règle allé et une règle retour)
@@ -385,7 +381,31 @@ Commandes iptables :
 ---
 
 ```bash
-LIVRABLE : Commandes iptables
+docker="docker exec -t firewall"
+# Not necessary for ICMP protocole but TCP and UDP need to be state full
+# return traffic 
+echo "0. Allows return traffic : RELATED, ESTABLISHED"
+$docker iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+$docker iptables -A FORWARD -m conntrack --ctstate INVALID -j DROP
+# ssh return traffic for Clien_in_LAN
+$docker iptables -A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+#---------
+# 1. PING
+#--------
+echo "1. Allows pings echo-request & echo-reply for LAN"
+# LAN --> WAN
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p icmp --icmp-type 8 -j ACCEPT
+$docker iptables -A FORWARD -d 192.168.100.0/24 -i eth0 -p icmp --icmp-type 0 -j ACCEPT
+
+# DMZ --> LAN
+$docker iptables -A FORWARD -s 192.168.200.0/24 -d 192.168.100.0/24 -p icmp --icmp-type 8 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.0/24 -d 192.168.200.0/24 -p icmp --icmp-type 0 -j ACCEPT
+
+# LAN --> DMZ
+$docker iptables -A FORWARD -s 192.168.100.0/24 -d 192.168.200.0/24 -p icmp --icmp-type 8 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.200.0/24 -d 192.168.100.0/24 -p icmp --icmp-type 0 -j ACCEPT
+
 ```
 ---
 
@@ -402,7 +422,8 @@ ping 8.8.8.8
 Faire une capture du ping.
 
 ---
-**LIVRABLE : capture d'écran de votre ping vers l'Internet.**
+![iptables_ping_OK](figures/iptables_ping_OK.png)
+
 
 ---
 
@@ -414,18 +435,18 @@ Faire une capture du ping.
 
 | De Client\_in\_LAN à | OK/KO | Commentaires et explications |
 | :---                 | :---: | :---                         |
-| Interface DMZ du FW  |       |                              |
-| Interface LAN du FW  |       |                              |
-| Client LAN           |       |                              |
-| Serveur WAN          |       |                              |
+| Interface DMZ du FW  |   KO    |  LAN n'est pas autorisé à `ping` le firewall|
+| Interface LAN du FW  |   KO    |  LAN n'est pas autorisé à `ping` le firewall|
+| Client LAN           |   OK    |  LAN autorisé à `ping` lui même ou autre client LAN (ne passe pas par le firewall)|
+| Serveur WAN          |    OK   | LAN est autorisé `ping` les servers WAN|
 
 
 | De Server\_in\_DMZ à | OK/KO | Commentaires et explications |
 | :---                 | :---: | :---                         |
-| Interface DMZ du FW  |       |                              |
-| Interface LAN du FW  |       |                              |
-| Serveur DMZ          |       |                              |
-| Serveur WAN          |       |                              |
+| Interface DMZ du FW  |   KO    |  DMZ n'est pas autorisé à `ping` le firewall|
+| Interface LAN du FW  |   KO    |  DMZ n'est pas autorisé à `ping` le firewall|
+| Serveur DMZ           |   OK    |  DMZ autorisé à `ping` lui même ou autre Serveur DMZ (ne passe pas par le firewall)|
+| Serveur WAN          |    NOK   |  DMZ n'est pas autorisé à `ping` un Serveur DMZ|
 
 
 ## Règles pour le protocole DNS
@@ -443,7 +464,7 @@ ping www.google.com
 
 ---
 
-**LIVRABLE : capture d'écran de votre ping.**
+![DNS_Resolution_failure](figures/DNS_Resolution_failure.png)
 
 ---
 
@@ -454,7 +475,14 @@ Commandes iptables :
 ---
 
 ```bash
-LIVRABLE : Commandes iptables
+#----------
+# 2. DNS
+#----------
+echo "2. Allows DNS lookups (tcp, udp port 53) for LAN" 
+# LAN --> WAN
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p udp --dport 53 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 53 -j ACCEPT
+
 ```
 
 ---
@@ -466,7 +494,7 @@ LIVRABLE : Commandes iptables
 
 ---
 
-**LIVRABLE : capture d'écran de votre ping.**
+![DNS_Resolution_iptables_DNS_Resolution_Success](figures/iptables_DNS_Resolution_Success.png)
 
 ---
 
@@ -478,7 +506,7 @@ LIVRABLE : Commandes iptables
 ---
 **Réponse**
 
-**LIVRABLE : Votre réponse ici...**
+Nous avons `ping` www.google.ch et grâce à la résolution DNS Client_In_Lan a résolu www.google.ch en 172.217.168.67.
 
 ---
 
@@ -498,7 +526,21 @@ Commandes iptables :
 ---
 
 ```bash
-LIVRABLE : Commandes iptables
+#---------
+# 3. HTTP
+#--------
+echo "3. Allows HTTP Connection for LAN"
+
+# LAN --> WAN
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 80 -j ACCEPT
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 8080 -j ACCEPT
+
+#---------
+# 4. HTTPS
+#--------
+echo "4. Allows HTTPS secure Connection for LAN"
+$docker iptables -A FORWARD -s 192.168.100.0/24 -i eth2 -p tcp --dport 443 -j ACCEPT
+
 ```
 
 ---
@@ -510,7 +552,16 @@ Commandes iptables :
 ---
 
 ```bash
-LIVRABLE : Commandes iptables
+#---------
+# 5. HTTP DMZ
+#--------
+echo "5. Allows to reach DMZ on port 80 from LAN and WAN"
+
+# LAN --> DMZ.3
+$docker iptables -A FORWARD -d 192.168.200.3 -i eth2 -p tcp --sport 80 -j ACCEPT
+# WAN --> DMZ.3
+$docker iptables -A FORWARD -d 192.168.200.3 -i eth0 -p tcp --sport 80 -j ACCEPT
+
 ```
 ---
 
@@ -521,7 +572,8 @@ LIVRABLE : Commandes iptables
 
 ---
 
-**LIVRABLE : capture d'écran.**
+![iptables_wget_nginx_DMZ.png](figures/iptables_wget_nginx_DMZ.png)
+
 
 ---
 
@@ -538,7 +590,24 @@ Commandes iptables :
 ---
 
 ```bash
-LIVRABLE : Commandes iptables
+#---------
+# 6. SSH DMZ
+#--------
+echo "6. Allows to admin DMZ with SSH from LAN"
+
+# LAN --> DMZ.3
+$docker iptables -A FORWARD -s 192.168.100.3 -d 192.168.200.3 -i eth2 -p tcp --dport 22 -j ACCEPT
+
+
+
+#---------
+# 7. SSH FIREWALL
+#--------
+echo "7. Allows to admin FIREWALL with SSH from LAN"
+
+# LAN --> FIREWALL
+$docker iptables -A INPUT -s 192.168.100.3 -i eth2 -p tcp --dport 22  -j ACCEPT
+
 ```
 
 ---
@@ -551,7 +620,8 @@ ssh root@192.168.200.3 (password : celui que vous avez configuré)
 
 ---
 
-**LIVRABLE : capture d'écran de votre connexion ssh.**
+
+![iptables_SSH_DMZ_Success.png](figures/iptables_SSH_DMZ_Success.png)
 
 ---
 
@@ -563,7 +633,7 @@ ssh root@192.168.200.3 (password : celui que vous avez configuré)
 ---
 **Réponse**
 
-**LIVRABLE : Votre réponse ici...**
+Grâce à un accès SSH nous sommes capables de configurer un serveur à distance. Cela est très pratique quand ce dernier est dépourvu d'écran ou bien inatteignable physiquement.
 
 ---
 
@@ -576,7 +646,7 @@ ssh root@192.168.200.3 (password : celui que vous avez configuré)
 ---
 **Réponse**
 
-**LIVRABLE : Votre réponse ici...**
+Il faut faire attention à configurer le bon port sur la bonne interface. Dans notre cas un petite erreur pourrait exposer notre firewall à internet. En effet si nous avions configurer l'interface eth0 (172.17.0.2) et non eth2 (192.168.100.2) des pirates mal intentionnés auraient pu attaquer notre firewall!
 
 ---
 
@@ -591,6 +661,7 @@ A présent, vous devriez avoir le matériel nécessaire afin de reproduire la ta
 
 ---
 
-**LIVRABLE : capture d'écran avec toutes vos règles.**
+![iptables_ALL.png](figures/iptables_ALL.png)
+
 
 ---
